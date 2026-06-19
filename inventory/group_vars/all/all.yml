@@ -1,13 +1,14 @@
 # --- Versions des outils ---
 node_exporter_version:      "1.8.1"
-prometheus_version:         "2.52.0"
-alertmanager_version:       "0.27.0"
-grafana_version:            "10.4.2"
-loki_version:               "3.0.0"
+prometheus_version:         "3.5.3"
+alertmanager_version:       "0.33.0"
+grafana_version:            "13.0.2"
+loki_version:               "3.6.5"
 tempo_version:              "2.5.0"
 promtail_version:           "3.0.0"
 pg_exporter_version:        "0.15.0"
 otel_collector_version:     "0.101.0"
+wazuh_version:              "4.14.5"
 
 # --- Adresses des serveurs (réutilisées dans les templates) ---
 monitoring_ip:  "192.168.6.10"

@@ -2,6 +2,9 @@
 - name: Déploiement appserv (serveur application)
   hosts: app
   gather_facts: yes
+  vars:
+    ansible_become_password: "{{ app_password }}"
+
   roles:
     - role: common
     - role: infra/docker

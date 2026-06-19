@@ -1,5 +1,6 @@
 #Utilisateur sur le serveur cible avec lequel ansible vas travailler
 ansible_user: app
+ansible_become_password: "{{ app_password }}"
 
 # Nginx
 nginx_port: 80

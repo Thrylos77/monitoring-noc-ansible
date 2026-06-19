@@ -26,6 +26,11 @@
     group: pg_exporter
     remote_src: yes
 
+- name: Installer psycopg2 (requis pour le module postgresql_user)
+  ansible.builtin.apt:
+    name: python3-psycopg2
+    state: present
+
 - name: Créer le user PostgreSQL pour l'exporter
   community.postgresql.postgresql_user:
     name: "{{ pg_exporter_user }}"

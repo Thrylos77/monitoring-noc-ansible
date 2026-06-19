@@ -1,5 +1,6 @@
 #Utilisateur sur le serveur cible avec lequel ansible vas travailler
 ansible_user: noc
+ansible_become_password: "{{ noc_password }}"
 
 # Stockage Prometheus (adapter selon la taille du disque)
 prometheus_retention_time: "14d"

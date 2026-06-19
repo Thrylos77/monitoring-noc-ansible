@@ -4,5 +4,7 @@ __pycache__/
 *.pyc
 .env
 *.log
-vault/secrets.yml
-
+inventory/host_vars/dbserv/vault.yml
+inventory/host_vars/appserv/vault.yml
+inventory/host_vars/nocserv/vault.yml
+inventory/group_vars/all/vault.yml

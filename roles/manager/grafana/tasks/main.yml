@@ -63,22 +63,22 @@
     group: grafana
     mode: '0755'
 
-- name: Déployer les dashboards JSON
-  ansible.builtin.copy:
-    src: "dashboards/{{ item }}"
-    dest: "/var/lib/grafana/dashboards/{{ item }}"
-    owner: grafana
-    group: grafana
-    mode: '0640'
-  loop:
-    - USE_infra.json
-    - RED_app.json
-    - SOC_wazuh.json
-  notify: restart grafana
+#- name: Déployer les dashboards JSON
+#  ansible.builtin.copy:
+#    src: "dashboards/{{ item }}"
+#    dest: "/var/lib/grafana/dashboards/{{ item }}"
+#    owner: grafana
+#    group: grafana
+#    mode: '0640'
+#  loop:
+#    - USE_infra.json
+#    - RED_app.json
+#    - SOC_wazuh.json
+#  notify: restart grafana
 
 - name: Installer les plugins Grafana
   ansible.builtin.command:
-    cmd: "grafana-cli plugins install {{ item }}"
+    cmd: "grafana-cli --homepath /usr/share/grafana --config /etc/grafana/grafana.ini plugins install {{ item }}"
   loop: "{{ grafana_plugins }}"
   notify: restart grafana
 

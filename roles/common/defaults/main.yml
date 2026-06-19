@@ -10,3 +10,4 @@ common_packages:
   - ca-certificates
   - lsb-release
   - python3-pip
+  - ufw

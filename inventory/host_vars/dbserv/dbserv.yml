@@ -1,13 +1,14 @@
 #Utilisateur sur le serveur cible avec lequel ansible vas travailler
 ansible_user: db
+ansible_become_password: "{{ db_password }}"
 
 # PostgreSQL
 pg_port:      5432
 pg_data_dir:  "/var/lib/postgresql/data"
 
 # Compte dédié pour le PostgreSQL Exporter
-pg_exporter_user: "pg_exporter"
-pg_exporter_dsn:  "postgresql://pg_exporter:{{ pg_exporter_password }}@localhost:{{ pg_port }}/postgres?sslmode=disable"
+pg_exporter_user: "postgres_exporter"
+pg_exporter_dsn:  "postgresql://postgres_exporter:{{ pg_exporter_password }}@localhost:{{ pg_port }}/postgres?sslmode=disable"
 
 # Promtail — logs à collecter sur ce serveur
 promtail_scrape_paths:

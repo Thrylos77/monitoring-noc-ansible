@@ -2,6 +2,9 @@
 - name: Déploiement dbserv (serveur base de données)
   hosts: db
   gather_facts: yes
+  vars:
+    ansible_become_password: "{{ db_password }}"
+
   roles:
     - role: common
     - role: agent/node-exporter
