@@ -1,0 +1,35 @@
+---
+- name: Créer les répertoires Loki
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ loki_data_path }}"
+    - /etc/loki
+
+- name: Déployer la configuration Loki
+  ansible.builtin.template:
+    src: loki-config.yml.j2
+    dest: /etc/loki/loki-config.yml
+    mode: '0644'
+  notify: restart loki
+
+- name: Lancer le conteneur Loki
+  community.docker.docker_container:
+    name: loki
+    image: "grafana/loki:{{ loki_version }}"
+    state: started
+    restart_policy: always
+    ports:
+      - "{{ loki_port }}:3100"
+    volumes:
+      - /etc/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - "{{ loki_data_path }}:/loki"
+    command: "-config.file=/etc/loki/local-config.yaml"
+
+- name: Ouvrir le port Loki dans ufw
+  community.general.ufw:
+    rule: allow
+    port: "{{ loki_port }}"
+    proto: tcp

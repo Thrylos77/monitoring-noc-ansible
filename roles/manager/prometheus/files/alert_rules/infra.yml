@@ -1,0 +1,35 @@
+groups:
+  - name: infrastructure
+    rules:
+
+      - alert: NodeDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: P1
+        annotations:
+          summary: "Serveur {{ $labels.host }} injoignable"
+
+      - alert: CPUElevé
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: P2
+        annotations:
+          summary: "CPU > 85% sur {{ $labels.instance }}"
+
+      - alert: RAMElevée
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: P2
+        annotations:
+          summary: "RAM > 85% sur {{ $labels.instance }}"
+
+      - alert: DisqueSaturé
+        expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: P2
+        annotations:
+          summary: "Disque > 85% sur {{ $labels.instance }}"

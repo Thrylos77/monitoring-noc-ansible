@@ -1,0 +1,50 @@
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: "noc-lab"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - "localhost:{{ alertmanager_port }}"
+
+rule_files:
+  - "/etc/prometheus/infra.yml"
+  - "/etc/prometheus/app.yml"
+
+scrape_configs:
+
+  # --- nocserv lui-même ---
+  - job_name: "node_exporter_monitoring"
+    static_configs:
+      - targets: ["{{ monitoring_ip }}:{{ node_exporter_port }}"]
+        labels:
+          host: nocserv
+
+  # --- dbserv ---
+  - job_name: "node_exporter_db"
+    static_configs:
+      - targets: ["{{ db_ip }}:{{ node_exporter_port }}"]
+        labels:
+          host: dbserv
+
+  - job_name: "postgresql"
+    static_configs:
+      - targets: ["{{ db_ip }}:{{ pg_exporter_port }}"]
+        labels:
+          host: dbserv
+
+  # --- appserv ---
+  - job_name: "node_exporter_app"
+    static_configs:
+      - targets: ["{{ app_ip }}:{{ node_exporter_port }}"]
+        labels:
+          host: appserv
+
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["{{ app_ip }}:{{ cadvisor_port }}"]
+        labels:
+          host: appserv

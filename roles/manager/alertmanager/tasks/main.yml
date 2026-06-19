@@ -1,0 +1,70 @@
+---
+- name: Créer l'utilisateur alertmanager
+  ansible.builtin.user:
+    name: alertmanager
+    shell: /usr/sbin/nologin
+    system: yes
+    create_home: no
+
+- name: Créer les répertoires alertmanager
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: alertmanager
+    group: alertmanager
+    mode: '0755'
+  loop:
+    - /etc/alertmanager
+    - /var/lib/alertmanager
+
+- name: Télécharger alertmanager
+  ansible.builtin.get_url:
+    url: "https://github.com/prometheus/alertmanager/releases/download/v{{ alertmanager_version }}/alertmanager-{{ alertmanager_version }}.linux-amd64.tar.gz"
+    dest: "/tmp/alertmanager-{{ alertmanager_version }}.tar.gz"
+
+- name: Extraire alertmanager
+  ansible.builtin.unarchive:
+    src: "/tmp/alertmanager-{{ alertmanager_version }}.tar.gz"
+    dest: /tmp/
+    remote_src: yes
+
+- name: Copier les binaires
+  ansible.builtin.copy:
+    src: "/tmp/alertmanager-{{ alertmanager_version }}.linux-amd64/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    mode: '0755'
+    owner: alertmanager
+    group: alertmanager
+    remote_src: yes
+  loop:
+    - alertmanager
+    - amtool
+
+- name: Déployer la configuration alertmanager
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: /etc/alertmanager/alertmanager.yml
+    owner: alertmanager
+    group: alertmanager
+    mode: '0644'
+  notify: reload alertmanager
+
+- name: Déployer le service systemd
+  ansible.builtin.template:
+    src: alertmanager.service.j2
+    dest: /etc/systemd/system/alertmanager.service
+    mode: '0644'
+  notify: restart alertmanager
+
+- name: Démarrer et activer alertmanager
+  ansible.builtin.systemd:
+    name: alertmanager
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Ouvrir le port alertmanager dans ufw
+  community.general.ufw:
+    rule: allow
+    port: "{{ alertmanager_port }}"
+    proto: tcp

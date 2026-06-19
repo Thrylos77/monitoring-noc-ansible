@@ -1,0 +1,12 @@
+common_packages:
+  - curl
+  - wget
+  - git
+  - vim
+  - htop
+  - net-tools
+  - unzip
+  - gnupg
+  - ca-certificates
+  - lsb-release
+  - python3-pip

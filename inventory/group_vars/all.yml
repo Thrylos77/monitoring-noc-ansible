@@ -1,0 +1,31 @@
+# --- Versions des outils ---
+node_exporter_version:      "1.8.1"
+prometheus_version:         "2.52.0"
+alertmanager_version:       "0.27.0"
+grafana_version:            "10.4.2"
+loki_version:               "3.0.0"
+tempo_version:              "2.5.0"
+promtail_version:           "3.0.0"
+pg_exporter_version:        "0.15.0"
+otel_collector_version:     "0.101.0"
+
+# --- Adresses des serveurs (réutilisées dans les templates) ---
+monitoring_ip:  "192.168.6.10"
+db_ip:          "192.168.6.30"
+app_ip:         "192.168.6.20"
+
+# --- Ports globaux ---
+prometheus_port:      9090
+alertmanager_port:    9093
+grafana_port:         3030
+loki_port:            3100
+tempo_port:           4317
+node_exporter_port:   9100
+pg_exporter_port:     9187
+cadvisor_port:        8080
+
+# --- Secrets (référencés depuis vault/secrets.yml) ---
+grafana_admin_password:   "{{ vault_grafana_admin_password }}"
+pg_exporter_password:     "{{ vault_pg_exporter_password }}"
+#smtp_password:           "{{ vault_smtp_password }}"
+elasticsearch_password:   "{{ vault_elasticsearch_password }}"

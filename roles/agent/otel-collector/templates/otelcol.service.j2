@@ -1,0 +1,14 @@
+[Unit]
+Description=OpenTelemetry Collector
+After=network.target
+
+[Service]
+User=otelcol
+Group=otelcol
+Type=simple
+ExecStart=/usr/local/bin/otelcol \
+  --config=/etc/otelcol/config.yml
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

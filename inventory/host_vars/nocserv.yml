@@ -1,0 +1,21 @@
+#Utilisateur sur le serveur cible avec lequel ansible vas travailler
+ansible_user: noc
+
+# Stockage Prometheus (adapter selon la taille du disque)
+prometheus_retention_time: "14d"
+prometheus_storage_path:   "/var/lib/prometheus"
+
+# Grafana
+grafana_plugins:
+  - grafana-piechart-panel
+  - grafana-clock-panel
+
+# Loki (Docker)
+loki_data_path: "/opt/loki/data"
+
+# Tempo (Docker)
+tempo_data_path: "/opt/tempo/data"
+tempo_retention: "48h"
+
+# Wazuh Manager (Docker)
+wazuh_manager_data_path: "/opt/wazuh/data"

@@ -1,0 +1,24 @@
+<ossec_config>
+  <client>
+    <server>
+      <address>{{ monitoring_ip }}</address>
+      <port>1514</port>
+      <protocol>tcp</protocol>
+    </server>
+    <enrollment>
+      <enabled>yes</enabled>
+      <manager_address>{{ monitoring_ip }}</manager_address>
+      <authorization_pass_path>/var/ossec/etc/authd.pass</authorization_pass_path>
+    </enrollment>
+  </client>
+
+  <logging>
+    <log_format>plain</log_format>
+  </logging>
+
+  <syscheck>
+    <frequency>43200</frequency>
+    <directories>/etc,/usr/bin,/usr/sbin</directories>
+    <directories>/bin,/sbin,/boot</directories>
+  </syscheck>
+</ossec_config>

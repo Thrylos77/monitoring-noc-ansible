@@ -1,0 +1,10 @@
+---
+- name: Déploiement dbserv (serveur base de données)
+  hosts: db
+  gather_facts: yes
+  roles:
+    - role: common
+    - role: agent/node-exporter
+    - role: agent/promtail
+    - role: agent/postgresql-exporter
+    - role: agent/wazuh-agent

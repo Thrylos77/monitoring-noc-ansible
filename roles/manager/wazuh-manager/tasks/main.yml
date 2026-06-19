@@ -1,0 +1,43 @@
+---
+- name: Créer les répertoires Wazuh Manager
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ wazuh_manager_data_path }}"
+    - /etc/wazuh-manager
+
+- name: Lancer Wazuh Manager via Docker
+  community.docker.docker_container:
+    name: wazuh-manager
+    image: "wazuh/wazuh-manager:{{ wazuh_version }}"
+    state: started
+    restart_policy: always
+    ports:
+      - "1514:1514/tcp"
+      - "1515:1515/tcp"
+      - "55000:55000/tcp"
+    volumes:
+      - "{{ wazuh_manager_data_path }}:/var/ossec/data"
+    env:
+      INDEXER_URL:      "http://localhost:9200"
+      INDEXER_USERNAME: "admin"
+      INDEXER_PASSWORD: "{{ elasticsearch_password }}"
+
+- name: Attendre que le Wazuh Manager soit prêt
+  ansible.builtin.wait_for:
+    port: 1515
+    host: localhost
+    delay: 10
+    timeout: 60
+
+- name: Ouvrir les ports Wazuh dans ufw
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - "1514"
+    - "1515"
+    - "55000"

@@ -1,0 +1,23 @@
+[server]
+http_port = {{ grafana_port }}
+domain    = {{ monitoring_ip }}
+
+[security]
+admin_user     = admin
+admin_password = {{ grafana_admin_password }}
+
+[auth.anonymous]
+enabled = false
+
+[users]
+allow_sign_up = false
+
+[log]
+mode  = console
+level = info
+
+[paths]
+data         = /var/lib/grafana
+logs         = /var/log/grafana
+plugins      = /var/lib/grafana/plugins
+provisioning = /etc/grafana/provisioning

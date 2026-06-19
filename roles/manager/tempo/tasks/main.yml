@@ -1,0 +1,36 @@
+---
+- name: Créer les répertoires Tempo
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ tempo_data_path }}"
+    - /etc/tempo
+
+- name: Déployer la configuration Tempo
+  ansible.builtin.template:
+    src: tempo.yml.j2
+    dest: /etc/tempo/tempo.yml
+    mode: '0644'
+  notify: restart tempo
+
+- name: Lancer le conteneur Tempo
+  community.docker.docker_container:
+    name: tempo
+    image: "grafana/tempo:{{ tempo_version }}"
+    state: started
+    restart_policy: always
+    ports:
+      - "{{ tempo_port }}:4317"
+      - "3200:3200"
+    volumes:
+      - /etc/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - "{{ tempo_data_path }}:/var/tempo"
+    command: "-config.file=/etc/tempo/tempo.yml"
+
+- name: Ouvrir le port Tempo dans ufw
+  community.general.ufw:
+    rule: allow
+    port: "{{ tempo_port }}"
+    proto: tcp

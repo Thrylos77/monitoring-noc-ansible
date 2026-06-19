@@ -1,0 +1,96 @@
+---
+- name: Ajouter la clé GPG Grafana
+  ansible.builtin.get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: /etc/apt/keyrings/grafana.asc
+    mode: '0644'
+
+- name: Ajouter le dépôt Grafana
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/grafana.asc] https://apt.grafana.com stable main"
+    filename: grafana
+    state: present
+
+- name: Installer Grafana
+  ansible.builtin.apt:
+    name: "grafana={{ grafana_version }}"
+    state: present
+    update_cache: yes
+
+- name: Déployer la configuration Grafana
+  ansible.builtin.template:
+    src: grafana.ini.j2
+    dest: /etc/grafana/grafana.ini
+    owner: grafana
+    group: grafana
+    mode: '0640'
+  notify: restart grafana
+
+- name: Créer les répertoires de provisioning
+  ansible.builtin.file:
+    path: "/etc/grafana/provisioning/{{ item }}"
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: '0755'
+  loop:
+    - datasources
+    - dashboards
+
+- name: Déployer les datasources
+  ansible.builtin.copy:
+    src: provisioning/datasources/all.yml
+    dest: /etc/grafana/provisioning/datasources/all.yml
+    owner: grafana
+    group: grafana
+    mode: '0640'
+  notify: restart grafana
+
+- name: Déployer la configuration des dashboards
+  ansible.builtin.copy:
+    src: provisioning/dashboards/dashboards.yml
+    dest: /etc/grafana/provisioning/dashboards/dashboards.yml
+    owner: grafana
+    group: grafana
+    mode: '0640'
+  notify: restart grafana
+
+- name: Créer le répertoire des fichiers JSON de dashboards
+  ansible.builtin.file:
+    path: /var/lib/grafana/dashboards
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: '0755'
+
+- name: Déployer les dashboards JSON
+  ansible.builtin.copy:
+    src: "dashboards/{{ item }}"
+    dest: "/var/lib/grafana/dashboards/{{ item }}"
+    owner: grafana
+    group: grafana
+    mode: '0640'
+  loop:
+    - USE_infra.json
+    - RED_app.json
+    - SOC_wazuh.json
+  notify: restart grafana
+
+- name: Installer les plugins Grafana
+  ansible.builtin.command:
+    cmd: "grafana-cli plugins install {{ item }}"
+  loop: "{{ grafana_plugins }}"
+  notify: restart grafana
+
+- name: Démarrer et activer Grafana
+  ansible.builtin.systemd:
+    name: grafana-server
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Ouvrir le port Grafana dans ufw
+  community.general.ufw:
+    rule: allow
+    port: "{{ grafana_port }}"
+    proto: tcp

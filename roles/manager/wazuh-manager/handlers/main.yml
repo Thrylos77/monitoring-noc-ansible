@@ -1,0 +1,6 @@
+---
+- name: restart wazuh-manager
+  community.docker.docker_container:
+    name: wazuh-manager
+    state: started
+    restart: yes

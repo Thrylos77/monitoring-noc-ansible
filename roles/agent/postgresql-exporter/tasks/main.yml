@@ -1,0 +1,55 @@
+---
+- name: Créer l'utilisateur pg_exporter sur le système
+  ansible.builtin.user:
+    name: pg_exporter
+    shell: /usr/sbin/nologin
+    system: yes
+    create_home: no
+
+- name: Télécharger postgresql_exporter
+  ansible.builtin.get_url:
+    url: "https://github.com/prometheus-community/postgres_exporter/releases/download/v{{ pg_exporter_version }}/postgres_exporter-{{ pg_exporter_version }}.linux-amd64.tar.gz"
+    dest: "/tmp/pg_exporter-{{ pg_exporter_version }}.tar.gz"
+
+- name: Extraire pg_exporter
+  ansible.builtin.unarchive:
+    src: "/tmp/pg_exporter-{{ pg_exporter_version }}.tar.gz"
+    dest: /tmp/
+    remote_src: yes
+
+- name: Copier le binaire
+  ansible.builtin.copy:
+    src: "/tmp/postgres_exporter-{{ pg_exporter_version }}.linux-amd64/postgres_exporter"
+    dest: /usr/local/bin/postgres_exporter
+    mode: '0755'
+    owner: pg_exporter
+    group: pg_exporter
+    remote_src: yes
+
+- name: Créer le user PostgreSQL pour l'exporter
+  community.postgresql.postgresql_user:
+    name: "{{ pg_exporter_user }}"
+    password: "{{ pg_exporter_password }}"
+    role_attr_flags: LOGIN,NOSUPERUSER
+  become_user: postgres
+
+- name: Déployer le service systemd
+  ansible.builtin.template:
+    src: pg_exporter.service.j2
+    dest: /etc/systemd/system/postgres_exporter.service
+    mode: '0644'
+  notify: restart pg_exporter
+
+- name: Démarrer et activer pg_exporter
+  ansible.builtin.systemd:
+    name: postgres_exporter
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Ouvrir le port pg_exporter dans ufw
+  community.general.ufw:
+    rule: allow
+    port: "{{ pg_exporter_port }}"
+    proto: tcp
+    src: "{{ monitoring_ip }}"

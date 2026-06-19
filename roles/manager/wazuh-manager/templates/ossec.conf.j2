@@ -1,0 +1,19 @@
+<ossec_config>
+  <global>
+    <logall>yes</logall>
+    <logall_json>yes</logall_json>
+    <email_notification>no</email_notification>
+  </global>
+
+  <cluster>
+    <name>wazuh</name>
+    <node_name>nocserv</node_name>
+    <node_type>master</node_type>
+    <disabled>yes</disabled>
+  </cluster>
+
+  <vulnerability-detector>
+    <enabled>yes</enabled>
+    <interval>12h</interval>
+  </vulnerability-detector>
+</ossec_config>

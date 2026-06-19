@@ -1,0 +1,8 @@
+---
+- name: Déploiement complet NOC
+  hosts: all
+  gather_facts: yes
+
+- import_playbook: monitoring.yml
+- import_playbook: db.yml
+- import_playbook: app.yml

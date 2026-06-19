@@ -1,0 +1,30 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: "http://{{ monitoring_ip }}:{{ loki_port }}/loki/api/v1/push"
+
+scrape_configs:
+  - job_name: system
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system
+          host: "{{ inventory_hostname }}"
+          __path__: /var/log/syslog
+
+{% for path in promtail_scrape_paths %}
+  - job_name: "{{ path | basename | regex_replace('\\..*', '') }}"
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: "{{ path | basename | regex_replace('\\..*', '') }}"
+          host: "{{ inventory_hostname }}"
+          __path__: "{{ path }}"
+{% endfor %}

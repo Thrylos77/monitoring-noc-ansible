@@ -1,0 +1,12 @@
+---
+- name: Déploiement appserv (serveur application)
+  hosts: app
+  gather_facts: yes
+  roles:
+    - role: common
+    - role: infra/docker
+    - role: agent/node-exporter
+    - role: agent/cadvisor
+    - role: agent/promtail
+    - role: agent/otel-collector
+    - role: agent/wazuh-agent

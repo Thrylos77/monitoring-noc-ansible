@@ -1,0 +1,14 @@
+---
+- name: Déploiement nocserv (serveur monitoring)
+  hosts: monitoring
+  gather_facts: yes
+  roles:
+    - role: common
+    - role: infra/docker
+    - role: manager/prometheus
+    - role: manager/alertmanager
+    - role: manager/loki
+    - role: manager/tempo
+    - role: manager/wazuh-manager
+    - role: manager/grafana
+    - role: agent/node-exporter

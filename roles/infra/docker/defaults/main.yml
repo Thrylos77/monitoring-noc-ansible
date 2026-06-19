@@ -1,0 +1,5 @@
+# Ces valeurs sont gérées par le dépôt officiel Docker
+# On les garde ici pour référence et surcharge possible
+docker_edition: "ce"
+docker_users:
+  - "{{ ansible_user }}"

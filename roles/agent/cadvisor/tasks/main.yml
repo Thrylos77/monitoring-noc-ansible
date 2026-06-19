@@ -1,0 +1,23 @@
+---
+- name: Lancer le conteneur cAdvisor
+  community.docker.docker_container:
+    name: cadvisor
+    image: "gcr.io/cadvisor/cadvisor:latest"
+    state: started
+    restart_policy: always
+    ports:
+      - "{{ cadvisor_port }}:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: yes
+
+- name: Ouvrir le port cAdvisor dans ufw
+  community.general.ufw:
+    rule: allow
+    port: "{{ cadvisor_port }}"
+    proto: tcp
+    src: "{{ monitoring_ip }}"

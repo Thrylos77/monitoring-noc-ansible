@@ -1,0 +1,6 @@
+---
+- name: restart tempo
+  community.docker.docker_container:
+    name: tempo
+    state: started
+    restart: yes

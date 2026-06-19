@@ -1,0 +1,21 @@
+#Utilisateur sur le serveur cible avec lequel ansible vas travailler
+ansible_user: app
+
+# Nginx
+nginx_port: 80
+nginx_ssl_port: 443
+
+# Django
+django_port: 8000
+
+# OpenTelemetry → Tempo sur nocserv
+otel_endpoint: "http://{{ monitoring_ip }}:{{ tempo_port }}"
+
+# Promtail — logs à collecter sur ce serveur
+promtail_scrape_paths:
+  - /var/log/nginx/access.log
+  - /var/log/nginx/error.log
+  - /var/log/syslog
+
+# cAdvisor (Docker)
+cadvisor_port: 8080

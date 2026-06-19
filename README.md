@@ -37,7 +37,7 @@ L’objectif principal est de faire de **Grafana** le **seul et unique centre de
 
 ### Stack Technique
 
-- **Visualisation** : Grafana (port 3001)
+- **Visualisation** : Grafana (port 3030)
 - **Métriques** : Prometheus + Node Exporter + PostgreSQL Exporter + cAdvisor
 - **Logs** : Loki + Promtail
 - **Traces** : Tempo

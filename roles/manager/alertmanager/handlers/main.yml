@@ -1,0 +1,11 @@
+---
+- name: reload alertmanager
+  ansible.builtin.uri:
+    url: "http://localhost:{{ alertmanager_port }}/-/reload"
+    method: POST
+    status_code: 200
+
+- name: restart alertmanager
+  ansible.builtin.systemd:
+    name: alertmanager
+    state: restarted

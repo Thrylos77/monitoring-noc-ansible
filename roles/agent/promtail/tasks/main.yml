@@ -1,0 +1,58 @@
+---
+- name: Créer l'utilisateur promtail
+  ansible.builtin.user:
+    name: promtail
+    shell: /usr/sbin/nologin
+    system: yes
+    create_home: no
+    groups: adm
+    append: yes
+
+- name: Télécharger promtail
+  ansible.builtin.get_url:
+    url: "https://github.com/grafana/loki/releases/download/v{{ promtail_version }}/promtail-linux-amd64.zip"
+    dest: "/tmp/promtail-{{ promtail_version }}.zip"
+
+- name: Extraire promtail
+  ansible.builtin.unarchive:
+    src: "/tmp/promtail-{{ promtail_version }}.zip"
+    dest: /tmp/
+    remote_src: yes
+
+- name: Copier le binaire
+  ansible.builtin.copy:
+    src: /tmp/promtail-linux-amd64
+    dest: /usr/local/bin/promtail
+    mode: '0755'
+    owner: promtail
+    group: promtail
+    remote_src: yes
+
+- name: Créer le répertoire de configuration
+  ansible.builtin.file:
+    path: /etc/promtail
+    state: directory
+    mode: '0755'
+
+- name: Déployer la configuration promtail
+  ansible.builtin.template:
+    src: promtail-config.yml.j2
+    dest: /etc/promtail/config.yml
+    mode: '0644'
+    owner: promtail
+    group: promtail
+  notify: restart promtail
+
+- name: Déployer le service systemd
+  ansible.builtin.template:
+    src: promtail.service.j2
+    dest: /etc/systemd/system/promtail.service
+    mode: '0644'
+  notify: restart promtail
+
+- name: Démarrer et activer promtail
+  ansible.builtin.systemd:
+    name: promtail
+    state: started
+    enabled: yes
+    daemon_reload: yes

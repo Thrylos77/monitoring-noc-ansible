@@ -1,0 +1,7 @@
+# Installation des paquets de modules supplémentaires publiés sur Ansible Galaxy
+# ansible-galaxy collection install -r requirements.yml
+collections:
+  - name: community.general
+  - name: community.docker
+  - name: community.postgresql
+  - name: grafana.grafana

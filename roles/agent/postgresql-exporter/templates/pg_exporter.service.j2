@@ -1,0 +1,15 @@
+[Unit]
+Description=PostgreSQL Exporter
+After=network.target postgresql.service
+
+[Service]
+User=pg_exporter
+Group=pg_exporter
+Type=simple
+Environment="DATA_SOURCE_NAME={{ pg_exporter_dsn }}"
+ExecStart=/usr/local/bin/postgres_exporter \
+  --web.listen-address=:{{ pg_exporter_port }}
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
