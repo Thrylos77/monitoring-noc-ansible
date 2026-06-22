@@ -38,21 +38,21 @@
     - dashboards
 
 - name: Déployer les datasources
-  ansible.builtin.copy:
-    src: provisioning/datasources/all.yml
+  ansible.builtin.template:
+    src: provisioning/datasources/all.yml.j2
     dest: /etc/grafana/provisioning/datasources/all.yml
     owner: grafana
     group: grafana
-    mode: '0640'
+    mode: '0664'
   notify: restart grafana
 
 - name: Déployer la configuration des dashboards
-  ansible.builtin.copy:
-    src: provisioning/dashboards/dashboards.yml
+  ansible.builtin.template:
+    src: provisioning/dashboards/dashboards.yml.j2
     dest: /etc/grafana/provisioning/dashboards/dashboards.yml
     owner: grafana
     group: grafana
-    mode: '0640'
+    mode: '0660'
   notify: restart grafana
 
 - name: Créer le répertoire des fichiers JSON de dashboards
@@ -63,23 +63,10 @@
     group: grafana
     mode: '0755'
 
-#- name: Déployer les dashboards JSON
-#  ansible.builtin.copy:
-#    src: "dashboards/{{ item }}"
-#    dest: "/var/lib/grafana/dashboards/{{ item }}"
-#    owner: grafana
-#    group: grafana
-#    mode: '0640'
-#  loop:
-#    - USE_infra.json
-#    - RED_app.json
-#    - SOC_wazuh.json
-#  notify: restart grafana
-
 - name: Installer les plugins Grafana
   ansible.builtin.command:
     cmd: "grafana-cli --homepath /usr/share/grafana --config /etc/grafana/grafana.ini plugins install {{ item }}"
-  loop: "{{ grafana_plugins }}"
+  loop: "{{ grafana_plugins | default([]) }}"
   notify: restart grafana
 
 - name: Démarrer et activer Grafana
@@ -94,3 +81,16 @@
     rule: allow
     port: "{{ grafana_port }}"
     proto: tcp
+
+- name: Créer les dossiers pour les dashboards
+  ansible.builtin.file:
+    path: "/var/lib/grafana/dashboards/{{ item }}"
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: '0755'
+  loop:
+    - noc
+    - application
+    - infrastructure
+    - security

@@ -1,0 +1,46 @@
+apiVersion: 1
+
+providers:
+  # Provider pour les dashboards système / NOC
+  - name: 'NOC Dashboards'
+    orgId: 1
+    folder: 'NOC'
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards/noc
+
+  # Provider pour les dashboards Application / Business
+  - name: 'Application Dashboards'
+    orgId: 1
+    folder: 'Application'
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards/application
+
+  # Provider pour les dashboards Infrastructure
+  - name: 'Infrastructure'
+    orgId: 1
+    folder: 'Infrastructure'
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards/infrastructure
+
+  # Provider pour les dashboards Sécurité (Wazuh / SOC)
+  - name: 'Security'
+    orgId: 1
+    folder: 'Security'
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards/security

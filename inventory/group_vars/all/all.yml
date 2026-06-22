@@ -1,14 +1,17 @@
 # --- Versions des outils ---
-node_exporter_version:      "1.8.1"
 prometheus_version:         "3.5.3"
 alertmanager_version:       "0.33.0"
 grafana_version:            "13.0.2"
-loki_version:               "3.6.5"
-tempo_version:              "2.5.0"
-promtail_version:           "3.0.0"
-pg_exporter_version:        "0.15.0"
-otel_collector_version:     "0.101.0"
+loki_version:               "3.7.2"
+tempo_version:              "2.10.7"
 wazuh_version:              "4.14.5"
+# -- Agent
+node_exporter_version:      "1.11.0"
+pg_exporter_version:        "0.19.0"
+otel_collector_version:     "0.153.0"
+promtail_version:           "3.6.10"
+cadvisor_version:           "0.60.1"
+
 
 # --- Adresses des serveurs (réutilisées dans les templates) ---
 monitoring_ip:  "192.168.6.10"
@@ -24,6 +27,7 @@ tempo_port:           4317
 node_exporter_port:   9100
 pg_exporter_port:     9187
 cadvisor_port:        8080
+elasticsearch_port:   9200
 
 # --- Secrets (référencés depuis vault/secrets.yml) ---
 grafana_admin_password:   "{{ vault_grafana_admin_password }}"

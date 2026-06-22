@@ -7,6 +7,7 @@
 - name: Mettre à jour tous les paquets
   ansible.builtin.apt:
     upgrade: dist
+  when: update_packages | default(true) | bool
 
 - name: Installer les outils de base
   ansible.builtin.apt:

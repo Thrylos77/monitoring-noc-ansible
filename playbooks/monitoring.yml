@@ -4,6 +4,7 @@
   gather_facts: yes
   vars:
     ansible_become_password: "{{ noc_password }}"
+    update_packages: false
   roles:
     - role: common
     - role: infra/docker

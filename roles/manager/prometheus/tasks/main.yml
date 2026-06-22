@@ -17,16 +17,29 @@
     - /etc/prometheus
     - "{{ prometheus_storage_path }}"
 
+# --- Téléchargement de Prometheus (idempotent) ---
+
+- name: Vérifier si Prometheus est déjà installé
+  ansible.builtin.stat:
+    path: "/usr/local/bin/prometheus"
+  register: prometheus_binary
+
 - name: Télécharger prometheus
   ansible.builtin.get_url:
     url: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
     dest: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
+    timeout: 120
+    retries: 2
+    delay: 10
+  when: not prometheus_binary.stat.exists
+  register: prometheus_download
 
 - name: Extraire prometheus
   ansible.builtin.unarchive:
     src: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
     dest: /tmp/
     remote_src: yes
+  when: prometheus_download.changed | default(false)
 
 - name: Copier les binaires
   ansible.builtin.copy:
@@ -39,6 +52,7 @@
   loop:
     - prometheus
     - promtool
+  when: prometheus_download.changed | default(false) or not prometheus_binary.stat.exists
 
 - name: Déployer la configuration prometheus
   ansible.builtin.template:
