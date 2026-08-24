@@ -25,6 +25,16 @@ L’objectif principal est de faire de **Grafana** le **seul et unique centre de
 
 ---
 
+## Prérequis Ansible
+
+- Ansible / ansible-core : 2.19 ou 2.20
+- Python : 3.12 ou 3.13
+- Testé avec :
+  - ansible-core 2.19.4
+  - Python 3.13.5
+
+---
+
 ## 🏗️ Architecture
 
 ### Serveurs
@@ -46,6 +56,22 @@ L’objectif principal est de faire de **Grafana** le **seul et unique centre de
 - **Automatisation** : Ansible
 - **OS** : Debian 13
 
+### Version Logicielles
+
+| Composant               | Variable Ansible          | Valeur par défaut |
+| ----------------------- | ------------------------- | ----------------- |
+| Grafana                 | grafana_version           | 13.0.3            |
+| Prometheus              | prometheus_version        | 3.5.3             |
+| Loki                    | loki_version              | 3.7.2             |
+| Tempo                   | tempo_version             | 3.0.2             |
+| Wazuh                   | wazuh_version             | 4.14.5            |
+| Node Exporter           | node_exporter_version     | 1.11.0            |
+| Postgres Exporter       | pg_exporter_version       | 0.19.0            |
+| Promtail                | promtail_version          | 3.6.10            |
+| cAdvisor                | cadvisor_version          | 0.60.1            |
+| OpenTelemetry Collector | otel_collector_version    | 0.153.0           |
+
 ---
 
 ## 📁 Structure du Projet
+

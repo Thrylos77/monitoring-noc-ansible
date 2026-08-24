@@ -1,0 +1,2 @@
+# Fichier à créer avec ansible-vault
+db_password:  "password"

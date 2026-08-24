@@ -1,0 +1,13 @@
+# Fichier à créer avec ansible-vault
+
+# Grafana
+vault_grafana_admin_password:  "password"
+
+# PostgreSQL Exporter
+vault_pg_exporter_password: "password"
+
+# SMTP (AlertManager)
+# vault_smtp_password: "password"
+
+# Opensearch (si auth activée)
+vault_opensearch_password: "password"
