@@ -1,7 +1,7 @@
 network.host: "{{ monitoring_ip }}"
 node.name: "{{ wazuh_node_name }}"
-cluster.initial_master_nodes:
-  - "{{ wazuh_node_name }}"
+#cluster.initial_master_nodes:
+#  - "{{ wazuh_node_name }}"
 discovery.type: single-node
 cluster.name: "wazuh-cluster"
 

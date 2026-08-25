@@ -42,3 +42,4 @@ grafana_admin_password:       "{{ vault_grafana_admin_password }}"
 pg_exporter_password:         "{{ vault_pg_exporter_password }}"
 #smtp_password:               "{{ vault_smtp_password }}"
 wazuh_indexer_admin_password: "{{ vault_opensearch_password }}"
+

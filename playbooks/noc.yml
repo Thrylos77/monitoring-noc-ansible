@@ -1,6 +1,6 @@
 ---
 - name: Déploiement nocserv (serveur monitoring)
-  hosts: monitoring
+  hosts: noc
   gather_facts: yes
   vars:
     ansible_become_password: "{{ noc_password }}"

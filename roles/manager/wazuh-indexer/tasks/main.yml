@@ -133,10 +133,9 @@
 
 - name: Attendre que le port 9200 soit disponible
   ansible.builtin.wait_for:
-    port: "{{ elasticsearch_port }}"
-    host: localhost
-    delay: 10
-    timeout: 90
+    host: "{{ monitoring_ip }}"
+    port: 9200
+    timeout: 300
 
 - name: Vérifier si la sécurité de l'indexer a déjà été initialisée
   ansible.builtin.stat:
@@ -146,30 +145,32 @@
 - name: Initialiser la sécurité du Wazuh Indexer
   ansible.builtin.command:
     cmd: >
-      /usr/share/wazuh-indexer/bin/indexer-security-init.sh
+      /usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh
       -cd /etc/wazuh-indexer/opensearch-security
-      -icl -nhnv
       -cacert /etc/wazuh-indexer/certs/root-ca.pem
       -cert /etc/wazuh-indexer/certs/admin.pem
       -key /etc/wazuh-indexer/certs/admin-key.pem
+      -h {{ monitoring_ip }}
+      -p 9200
+      -icl -nhnv
+  environment:
+    JAVA_HOME: "/usr/share/wazuh-indexer/jdk"
   when: not wazuh_security_initialized.stat.exists
   register: wazuh_security_init_result
 
 - name: Changer le mot de passe admin par défaut de l'indexer
   ansible.builtin.uri:
-    url: "https://localhost:{{ elasticsearch_port }}/_plugins/_security/api/internalusers/admin"
-    method: PATCH
+    url: "https://{{ monitoring_ip }}:{{ elasticsearch_port }}/_plugins/_security/api/internalusers/admin"
+    method: PUT
     body_format: json
     body:
-      - op: replace
-        path: /password
-        value: "{{ wazuh_indexer_admin_password }}"
+      password: "{{ wazuh_indexer_admin_password }}"
     client_cert: "{{ wazuh_certs_path }}/admin.pem"
     client_key: "{{ wazuh_certs_path }}/admin-key.pem"
-    validate_certs: no
+    validate_certs: false
     status_code: 200
   when: not wazuh_security_initialized.stat.exists
-  no_log: true
+  no_log: false
 
 - name: Marquer la sécurité de l'indexer comme initialisée
   ansible.builtin.file:
