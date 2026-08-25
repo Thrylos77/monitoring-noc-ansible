@@ -1,6 +1,5 @@
 ---
 - name: restart tempo
-  community.docker.docker_container:
+  ansible.builtin.systemd:
     name: tempo
-    state: started
-    restart: yes
+    state: restarted

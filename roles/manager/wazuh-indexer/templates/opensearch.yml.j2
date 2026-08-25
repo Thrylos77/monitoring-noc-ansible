@@ -1,0 +1,49 @@
+network.host: "{{ monitoring_ip }}"
+node.name: "{{ wazuh_node_name }}"
+cluster.initial_master_nodes:
+  - "{{ wazuh_node_name }}"
+discovery.type: single-node
+cluster.name: "wazuh-cluster"
+
+path.data: {{ wazuh_indexer_data_path }}
+path.logs: /var/log/wazuh-indexer
+
+plugins.security.ssl.transport.pemcert_filepath: certs/indexer.pem
+plugins.security.ssl.transport.pemkey_filepath: certs/indexer-key.pem
+plugins.security.ssl.transport.pemtrustedcas_filepath: certs/root-ca.pem
+plugins.security.ssl.transport.enforce_hostname_verification: false
+plugins.security.ssl.http.enabled: true
+plugins.security.ssl.http.pemcert_filepath: certs/indexer.pem
+plugins.security.ssl.http.pemkey_filepath: certs/indexer-key.pem
+plugins.security.ssl.http.pemtrustedcas_filepath: certs/root-ca.pem
+plugins.security.allow_default_init_securityindex: true
+
+plugins.security.authcz.admin_dn:
+  - "CN=admin,OU=Wazuh,O=Wazuh,L=California,C=US"
+
+plugins.security.nodes_dn:
+  - "CN={{ wazuh_node_name }},OU=Wazuh,O=Wazuh,L=California,C=US"
+
+plugins.security.restapi.roles_enabled:
+  - "all_access"
+  - "security_rest_api_access"
+
+plugins.security.system_indices.enabled: true
+plugins.security.system_indices.indices:
+  - ".plugins-ml-model"
+  - ".plugins-ml-task"
+  - ".opendistro-alerting-config"
+  - ".opendistro-alerting-alert*"
+  - ".opendistro-anomaly-results*"
+  - ".opendistro-anomaly-detector*"
+  - ".opendistro-anomaly-checkpoints"
+  - ".opendistro-anomaly-detection-state"
+  - ".opendistro-reports-*"
+  - ".opensearch-notifications-*"
+  - ".opensearch-notebooks"
+  - ".opensearch-observability"
+  - ".ql-datasources"
+  - ".opendistro-asynchronous-search-response*"
+  - ".replication-metadata-store"
+  - ".opensearch-knn-models"
+  - ".geospatial-ip2geo-data*"

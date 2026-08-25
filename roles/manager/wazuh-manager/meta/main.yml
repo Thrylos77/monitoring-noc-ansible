@@ -1,3 +1,2 @@
 ---
-dependencies:
-  - role: infra/docker
+dependencies: []

@@ -1,6 +1,11 @@
 ---
 - name: restart wazuh-manager
-  community.docker.docker_container:
+  ansible.builtin.systemd:
     name: wazuh-manager
-    state: started
-    restart: yes
+    state: restarted
+
+- name: restart filebeat
+  ansible.builtin.systemd:
+    name: filebeat
+    state: restarted
+

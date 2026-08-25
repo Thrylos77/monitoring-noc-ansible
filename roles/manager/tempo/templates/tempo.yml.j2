@@ -6,7 +6,7 @@ distributor:
     otlp:
       protocols:
         grpc:
-          endpoint: "0.0.0.0:4317"
+          endpoint: "0.0.0.0:{{ tempo_port }}"
 
 ingester:
   trace_idle_period: 10s
@@ -22,6 +22,6 @@ storage:
   trace:
     backend: local
     local:
-      path: /var/tempo/blocks
+      path: "{{ tempo_data_path }}/blocks"
     wal:
-      path: /var/tempo/wal
+      path: "{{ tempo_data_path }}/wal"

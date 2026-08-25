@@ -1,0 +1,14 @@
+[Unit]
+Description=Tempo
+After=network.target
+
+[Service]
+User=tempo
+Group=tempo
+Type=simple
+ExecStart=/usr/local/bin/tempo \
+  -config.file=/etc/tempo/tempo.yml
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

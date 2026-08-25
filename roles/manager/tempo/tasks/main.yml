@@ -1,36 +1,89 @@
 ---
+- name: Créer l'utilisateur tempo
+  ansible.builtin.user:
+    name: tempo
+    shell: /usr/sbin/nologin
+    system: yes
+    create_home: no
+
 - name: Créer les répertoires Tempo
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
+    owner: tempo
+    group: tempo
     mode: '0755'
   loop:
     - "{{ tempo_data_path }}"
+    - "{{ tempo_data_path }}/blocks"
+    - "{{ tempo_data_path }}/wal"
     - /etc/tempo
+
+# --- Téléchargement de Tempo (idempotent) ---
+
+- name: Vérifier si Tempo est déjà installé
+  ansible.builtin.stat:
+    path: "/usr/local/bin/tempo"
+  register: tempo_binary
+
+- name: Télécharger tempo
+  ansible.builtin.get_url:
+    url: "https://github.com/grafana/tempo/releases/download/v{{ tempo_version }}/tempo_{{ tempo_version }}_linux_amd64.tar.gz"
+    dest: "/tmp/tempo-{{ tempo_version }}.tar.gz"
+    timeout: 120
+    retries: 2
+    delay: 10
+  when: not tempo_binary.stat.exists
+  register: tempo_download
+
+- name: Extraire tempo
+  ansible.builtin.unarchive:
+    src: "/tmp/tempo-{{ tempo_version }}.tar.gz"
+    dest: /tmp/
+    remote_src: yes
+  when: tempo_download.changed | default(false)
+
+- name: Copier le binaire
+  ansible.builtin.copy:
+    src: /tmp/tempo
+    dest: /usr/local/bin/tempo
+    mode: '0755'
+    owner: tempo
+    group: tempo
+    remote_src: yes
+  when: tempo_download.changed | default(false) or not tempo_binary.stat.exists
 
 - name: Déployer la configuration Tempo
   ansible.builtin.template:
     src: tempo.yml.j2
     dest: /etc/tempo/tempo.yml
+    owner: tempo
+    group: tempo
     mode: '0644'
   notify: restart tempo
 
-- name: Lancer le conteneur Tempo
-  community.docker.docker_container:
-    name: tempo
-    image: "grafana/tempo:{{ tempo_version }}"
-    state: started
-    restart_policy: always
-    ports:
-      - "{{ tempo_port }}:4317"
-      - "3200:3200"
-    volumes:
-      - /etc/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
-      - "{{ tempo_data_path }}:/var/tempo"
-    command: "-config.file=/etc/tempo/tempo.yml"
+- name: Déployer le service systemd
+  ansible.builtin.template:
+    src: tempo.service.j2
+    dest: /etc/systemd/system/tempo.service
+    mode: '0644'
+  notify: restart tempo
 
-- name: Ouvrir le port Tempo dans ufw
+- name: Démarrer et activer tempo
+  ansible.builtin.systemd:
+    name: tempo
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Ouvrir le port Tempo (gRPC OTLP) dans ufw
   community.general.ufw:
     rule: allow
     port: "{{ tempo_port }}"
+    proto: tcp
+
+- name: Ouvrir le port Tempo (HTTP API 3200) dans ufw
+  community.general.ufw:
+    rule: allow
+    port: "3200"
     proto: tcp

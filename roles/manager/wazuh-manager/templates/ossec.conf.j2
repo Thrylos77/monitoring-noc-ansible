@@ -12,6 +12,20 @@
     <disabled>yes</disabled>
   </cluster>
 
+  <indexer>
+    <enabled>yes</enabled>
+    <hosts>
+      <host>https://{{ wazuh_indexer_ip | default('127.0.0.1') }}:{{ elasticsearch_port }}</host>
+    </hosts>
+    <ssl>
+      <certificate_authorities>
+        <ca>/etc/filebeat/certs/root-ca.pem</ca>
+      </certificate_authorities>
+      <certificate>/etc/filebeat/certs/filebeat.pem</certificate>
+      <key>/etc/filebeat/certs/filebeat-key.pem</key>
+    </ssl>
+  </indexer>
+
   <vulnerability-detector>
     <enabled>yes</enabled>
     <interval>12h</interval>

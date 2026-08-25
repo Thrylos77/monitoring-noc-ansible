@@ -12,6 +12,7 @@
     - role: manager/alertmanager
     - role: manager/loki
     - role: manager/tempo
+    - role: manager/wazuh-indexer
     - role: manager/wazuh-manager
     - role: manager/grafana
     - role: agent/node-exporter

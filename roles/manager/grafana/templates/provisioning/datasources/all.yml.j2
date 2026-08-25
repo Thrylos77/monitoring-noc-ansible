@@ -20,7 +20,7 @@ datasources:
   - name: Tempo
     type: tempo
     uid: tempo
-    url: "http://localhost:{{ tempo_port }}"
+    url: "http://localhost:3200"
     editable: false
     jsonData:
       tracesToLogs:
@@ -28,11 +28,21 @@ datasources:
         spanStartTimeShift: "-1h"
         spanEndTimeShift: "1h"
 
-  - name: Elasticsearch
-    type: elasticsearch
-    uid: elasticsearch
-    url: "http://localhost:{{ elasticsearch_port }}"
-    database: "wazuh-alerts-*"
+  - name: Wazuh Indexer
+    type: grafana-opensearch-datasource
+    uid: wazuh-indexer
+    access: proxy
+    url: "https://localhost:{{ elasticsearch_port }}"
+    basicAuth: true
+    basicAuthUser: "{{ wazuh_indexer_admin_user }}"
+    secureJsonData:
+      basicAuthPassword: "{{ wazuh_indexer_admin_password }}"
+    jsonData:
+      database: "wazuh-alerts-*"
+      flavor: "opensearch"
+      version: "2.11.0"
+      timeField: "timestamp"
+      tlsSkipVerify: true
     editable: false
 
   - name: AlertManager

@@ -1,7 +1,7 @@
 auth_enabled: false
 
 server:
-  http_listen_port: 3100
+  http_listen_port: {{ loki_port }}
 
 ingester:
   lifecycler:
@@ -24,11 +24,11 @@ schema_config:
 
 storage_config:
   boltdb_shipper:
-    active_index_directory: /loki/index
-    cache_location:         /loki/cache
+    active_index_directory: "{{ loki_data_path }}/index"
+    cache_location:         "{{ loki_data_path }}/cache"
     shared_store:           filesystem
   filesystem:
-    directory: /loki/chunks
+    directory: "{{ loki_data_path }}/chunks"
 
 limits_config:
   reject_old_samples:      true

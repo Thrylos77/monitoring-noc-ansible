@@ -1,32 +1,78 @@
 ---
+- name: Créer l'utilisateur loki
+  ansible.builtin.user:
+    name: loki
+    shell: /usr/sbin/nologin
+    system: yes
+    create_home: no
+
 - name: Créer les répertoires Loki
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
+    owner: loki
+    group: loki
     mode: '0755'
   loop:
     - "{{ loki_data_path }}"
     - /etc/loki
 
+# --- Téléchargement de Loki (idempotent) ---
+
+- name: Vérifier si Loki est déjà installé
+  ansible.builtin.stat:
+    path: "/usr/local/bin/loki"
+  register: loki_binary
+
+- name: Télécharger loki
+  ansible.builtin.get_url:
+    url: "https://github.com/grafana/loki/releases/download/v{{ loki_version }}/loki-linux-amd64.zip"
+    dest: "/tmp/loki-{{ loki_version }}.zip"
+    timeout: 120
+    retries: 2
+    delay: 10
+  when: not loki_binary.stat.exists
+  register: loki_download
+
+- name: Extraire loki
+  ansible.builtin.unarchive:
+    src: "/tmp/loki-{{ loki_version }}.zip"
+    dest: /tmp/
+    remote_src: yes
+  when: loki_download.changed | default(false)
+
+- name: Copier le binaire
+  ansible.builtin.copy:
+    src: /tmp/loki-linux-amd64
+    dest: /usr/local/bin/loki
+    mode: '0755'
+    owner: loki
+    group: loki
+    remote_src: yes
+  when: loki_download.changed | default(false) or not loki_binary.stat.exists
+
 - name: Déployer la configuration Loki
   ansible.builtin.template:
     src: loki-config.yml.j2
     dest: /etc/loki/loki-config.yml
+    owner: loki
+    group: loki
     mode: '0644'
   notify: restart loki
 
-- name: Lancer le conteneur Loki
-  community.docker.docker_container:
+- name: Déployer le service systemd
+  ansible.builtin.template:
+    src: loki.service.j2
+    dest: /etc/systemd/system/loki.service
+    mode: '0644'
+  notify: restart loki
+
+- name: Démarrer et activer loki
+  ansible.builtin.systemd:
     name: loki
-    image: "grafana/loki:{{ loki_version }}"
     state: started
-    restart_policy: always
-    ports:
-      - "{{ loki_port }}:3100"
-    volumes:
-      - /etc/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
-      - "{{ loki_data_path }}:/loki"
-    command: "-config.file=/etc/loki/local-config.yaml"
+    enabled: yes
+    daemon_reload: yes
 
 - name: Ouvrir le port Loki dans ufw
   community.general.ufw:

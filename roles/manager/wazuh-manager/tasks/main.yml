@@ -1,38 +1,168 @@
 ---
-- name: Créer les répertoires Wazuh Manager
+- name: Installer les dépendances pour le dépôt Wazuh
+  ansible.builtin.apt:
+    name:
+      - gnupg
+      - apt-transport-https
+    state: present
+
+- name: Ajouter la clé GPG Wazuh
+  ansible.builtin.get_url:
+    url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+    dest: /usr/share/keyrings/wazuh.asc
+    mode: '0644'
+
+- name: Convertir la clé GPG au format binaire (dearmor)
+  ansible.builtin.command:
+    cmd: "gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import /usr/share/keyrings/wazuh.asc"
+    creates: /usr/share/keyrings/wazuh.gpg
+
+- name: Fixer les permissions du keyring Wazuh
   ansible.builtin.file:
-    path: "{{ item }}"
+    path: /usr/share/keyrings/wazuh.gpg
+    mode: '0644'
+
+- name: Ajouter le dépôt Wazuh
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main"
+    filename: wazuh
+    state: present
+
+- name: Installer Wazuh Manager
+  ansible.builtin.apt:
+    name: "wazuh-manager={{ wazuh_version }}-*"
+    state: present
+    update_cache: yes
+
+# --- Certificats pour la connexion Manager -> Indexer (Filebeat) ---
+# Les certificats sont générés côté rôle manager/wazuh-indexer (source de vérité)
+# et redistribués ici, car le Manager et l'Indexer tournent sur le même hôte (nocserv).
+
+- name: Créer le répertoire des certificats Filebeat
+  ansible.builtin.file:
+    path: /etc/filebeat/certs
     state: directory
-    mode: '0755'
-  loop:
-    - "{{ wazuh_manager_data_path }}"
-    - /etc/wazuh-manager
+    mode: '0500'
+    owner: root
+    group: root
 
-- name: Lancer Wazuh Manager via Docker
-  community.docker.docker_container:
+- name: Copier le certificat root CA pour Filebeat
+  ansible.builtin.copy:
+    src: "{{ wazuh_certs_path }}/root-ca.pem"
+    dest: /etc/filebeat/certs/root-ca.pem
+    remote_src: yes
+    mode: '0400'
+
+- name: Copier le certificat Filebeat (noeud manager)
+  ansible.builtin.copy:
+    src: "{{ wazuh_certs_path }}/{{ wazuh_node_name }}.pem"
+    dest: /etc/filebeat/certs/filebeat.pem
+    remote_src: yes
+    mode: '0400'
+
+- name: Copier la clé privée Filebeat (noeud manager)
+  ansible.builtin.copy:
+    src: "{{ wazuh_certs_path }}/{{ wazuh_node_name }}-key.pem"
+    dest: /etc/filebeat/certs/filebeat-key.pem
+    remote_src: yes
+    mode: '0400'
+
+- name: Installer Filebeat
+  ansible.builtin.apt:
+    name: "filebeat={{ wazuh_filebeat_version }}"
+    state: present
+
+- name: Télécharger le module Wazuh pour Filebeat
+  ansible.builtin.get_url:
+    url: "https://packages.wazuh.com/4.x/filebeat/wazuh-filebeat-0.4.tar.gz"
+    dest: /tmp/wazuh-filebeat-module.tar.gz
+
+- name: Extraire le module Wazuh pour Filebeat
+  ansible.builtin.unarchive:
+    src: /tmp/wazuh-filebeat-module.tar.gz
+    dest: /usr/share/filebeat/module
+    remote_src: yes
+    creates: /usr/share/filebeat/module/wazuh
+
+- name: Déployer la configuration Filebeat
+  ansible.builtin.template:
+    src: filebeat.yml.j2
+    dest: /etc/filebeat/filebeat.yml
+    owner: root
+    group: root
+    mode: '0600'
+  notify: restart filebeat
+
+- name: Créer le keystore Filebeat
+  ansible.builtin.command:
+    cmd: filebeat keystore create
+    creates: /var/lib/filebeat/filebeat.keystore
+
+- name: Enregistrer le nom d'utilisateur indexer dans le keystore Filebeat
+  ansible.builtin.shell: |
+    set -o pipefail
+    echo "{{ wazuh_indexer_admin_user }}" | filebeat keystore add WAZUH_INDEXER_USERNAME --stdin --force
+  args:
+    executable: /bin/bash
+  changed_when: true
+
+- name: Enregistrer le mot de passe indexer dans le keystore Filebeat
+  ansible.builtin.shell: |
+    set -o pipefail
+    echo "{{ wazuh_indexer_admin_password }}" | filebeat keystore add WAZUH_INDEXER_PASSWORD --stdin --force
+  args:
+    executable: /bin/bash
+  changed_when: true
+  no_log: true
+
+- name: Télécharger le template d'index Wazuh pour Filebeat
+  ansible.builtin.get_url:
+    url: "https://raw.githubusercontent.com/wazuh/wazuh/v{{ wazuh_version }}/extensions/elasticsearch/7.x/wazuh-template.json"
+    dest: /etc/filebeat/wazuh-template.json
+    mode: '0644'
+
+- name: Enregistrer le nom d'utilisateur indexer dans le keystore Wazuh
+  ansible.builtin.shell: |
+    set -o pipefail
+    echo "{{ wazuh_indexer_admin_user }}" | /var/ossec/bin/wazuh-keystore -f indexer -k username
+  args:
+    executable: /bin/bash
+  changed_when: true
+
+- name: Enregistrer le mot de passe indexer dans le keystore Wazuh
+  ansible.builtin.shell: |
+    set -o pipefail
+    echo "{{ wazuh_indexer_admin_password }}" | /var/ossec/bin/wazuh-keystore -f indexer -k password
+  args:
+    executable: /bin/bash
+  changed_when: true
+  no_log: true
+
+- name: Déployer la configuration ossec.conf
+  ansible.builtin.template:
+    src: ossec.conf.j2
+    dest: /var/ossec/etc/ossec.conf
+    owner: root
+    group: wazuh
+    mode: '0640'
+    backup: yes
+  notify: restart wazuh-manager
+
+- name: Démarrer et activer wazuh-manager
+  ansible.builtin.systemd:
     name: wazuh-manager
-    image: "wazuh/wazuh-manager:{{ wazuh_version }}"
     state: started
-    restart_policy: always
-    ports:
-      - "1514:1514/tcp"
-      - "1515:1515/tcp"
-      - "55000:55000/tcp"
-    volumes:
-      - "{{ wazuh_manager_data_path }}:/var/ossec/data"
-    env:
-      INDEXER_URL:      "http://localhost:9200"
-      INDEXER_USERNAME: "admin"
-      INDEXER_PASSWORD: "{{ elasticsearch_password }}"
+    enabled: yes
+    daemon_reload: yes
 
-- name: Attendre que le Wazuh Manager soit prêt
-  ansible.builtin.wait_for:
-    port: 1515
-    host: localhost
-    delay: 10
-    timeout: 60
+- name: Démarrer et activer filebeat
+  ansible.builtin.systemd:
+    name: filebeat
+    state: started
+    enabled: yes
+    daemon_reload: yes
 
-- name: Ouvrir les ports Wazuh dans ufw
+- name: Ouvrir les ports Wazuh Manager dans ufw
   community.general.ufw:
     rule: allow
     port: "{{ item }}"

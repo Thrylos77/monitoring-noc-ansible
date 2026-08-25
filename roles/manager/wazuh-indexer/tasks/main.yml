@@ -1,0 +1,185 @@
+---
+- name: Installer les dépendances pour le dépôt Wazuh
+  ansible.builtin.apt:
+    name:
+      - gnupg
+      - apt-transport-https
+      - debconf
+      - adduser
+      - procps
+    state: present
+
+- name: Ajouter la clé GPG Wazuh
+  ansible.builtin.get_url:
+    url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+    dest: /usr/share/keyrings/wazuh.asc
+    mode: '0644'
+
+- name: Convertir la clé GPG au format binaire (dearmor)
+  ansible.builtin.command:
+    cmd: "gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import /usr/share/keyrings/wazuh.asc"
+    creates: /usr/share/keyrings/wazuh.gpg
+
+- name: Fixer les permissions du keyring Wazuh
+  ansible.builtin.file:
+    path: /usr/share/keyrings/wazuh.gpg
+    mode: '0644'
+
+- name: Ajouter le dépôt Wazuh
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main"
+    filename: wazuh
+    state: present
+
+# --- Génération des certificats TLS (single-node) ---
+
+- name: Créer le répertoire de travail pour les certificats
+  ansible.builtin.file:
+    path: "{{ wazuh_certs_path }}"
+    state: directory
+    mode: '0750'
+
+- name: Vérifier si les certificats existent déjà
+  ansible.builtin.stat:
+    path: "{{ wazuh_certs_path }}/root-ca.pem"
+  register: wazuh_certs_exist
+
+- name: Télécharger le script wazuh-certs-tool.sh
+  ansible.builtin.get_url:
+    url: "https://packages.wazuh.com/{{ wazuh_version | regex_replace('^(\\d+\\.\\d+).*', '\\1') }}/wazuh-certs-tool.sh"
+    dest: "{{ wazuh_certs_path }}/wazuh-certs-tool.sh"
+    mode: '0750'
+  when: not wazuh_certs_exist.stat.exists
+
+- name: Déployer le fichier config.yml pour la génération des certificats
+  ansible.builtin.template:
+    src: certs-config.yml.j2
+    dest: "{{ wazuh_certs_path }}/config.yml"
+    mode: '0640'
+  when: not wazuh_certs_exist.stat.exists
+
+- name: Générer les certificats (single-node)
+  ansible.builtin.command:
+    cmd: "./wazuh-certs-tool.sh -A"
+    chdir: "{{ wazuh_certs_path }}"
+  when: not wazuh_certs_exist.stat.exists
+
+- name: Déplacer les certificats générés à la racine du répertoire de certs
+  ansible.builtin.shell: |
+    set -o pipefail
+    cp -f wazuh-certificates/*.pem .
+  args:
+    chdir: "{{ wazuh_certs_path }}"
+    executable: /bin/bash
+  when: not wazuh_certs_exist.stat.exists
+
+- name: Fixer les permissions des certificats
+  ansible.builtin.shell: "chmod 640 {{ wazuh_certs_path }}/*.pem"
+  when: not wazuh_certs_exist.stat.exists
+
+# --- Installation Wazuh Indexer ---
+
+- name: Installer Wazuh Indexer
+  ansible.builtin.apt:
+    name: "wazuh-indexer={{ wazuh_version }}-*"
+    state: present
+    update_cache: yes
+
+- name: Créer le répertoire des certificats de l'indexer
+  ansible.builtin.file:
+    path: /etc/wazuh-indexer/certs
+    state: directory
+    owner: wazuh-indexer
+    group: wazuh-indexer
+    mode: '0500'
+
+- name: Copier les certificats de l'indexer
+  ansible.builtin.copy:
+    src: "{{ wazuh_certs_path }}/{{ item.src }}"
+    dest: "/etc/wazuh-indexer/certs/{{ item.dest }}"
+    remote_src: yes
+    owner: wazuh-indexer
+    group: wazuh-indexer
+    mode: '0400'
+  loop:
+    - { src: "root-ca.pem", dest: "root-ca.pem" }
+    - { src: "{{ wazuh_node_name }}.pem", dest: "indexer.pem" }
+    - { src: "{{ wazuh_node_name }}-key.pem", dest: "indexer-key.pem" }
+    - { src: "admin.pem", dest: "admin.pem" }
+    - { src: "admin-key.pem", dest: "admin-key.pem" }
+
+- name: Déployer la configuration opensearch.yml
+  ansible.builtin.template:
+    src: opensearch.yml.j2
+    dest: /etc/wazuh-indexer/opensearch.yml
+    owner: wazuh-indexer
+    group: wazuh-indexer
+    mode: '0640'
+  notify: restart wazuh-indexer
+
+- name: Ajuster les limites systeme (mémoire virtuelle) pour OpenSearch
+  ansible.posix.sysctl:
+    name: vm.max_map_count
+    value: "262144"
+    state: present
+    reload: yes
+
+- name: Démarrer et activer wazuh-indexer
+  ansible.builtin.systemd:
+    name: wazuh-indexer
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Attendre que le port 9200 soit disponible
+  ansible.builtin.wait_for:
+    port: "{{ elasticsearch_port }}"
+    host: localhost
+    delay: 10
+    timeout: 90
+
+- name: Vérifier si la sécurité de l'indexer a déjà été initialisée
+  ansible.builtin.stat:
+    path: /etc/wazuh-indexer/.security_initialized
+  register: wazuh_security_initialized
+
+- name: Initialiser la sécurité du Wazuh Indexer
+  ansible.builtin.command:
+    cmd: >
+      /usr/share/wazuh-indexer/bin/indexer-security-init.sh
+      -cd /etc/wazuh-indexer/opensearch-security
+      -icl -nhnv
+      -cacert /etc/wazuh-indexer/certs/root-ca.pem
+      -cert /etc/wazuh-indexer/certs/admin.pem
+      -key /etc/wazuh-indexer/certs/admin-key.pem
+  when: not wazuh_security_initialized.stat.exists
+  register: wazuh_security_init_result
+
+- name: Changer le mot de passe admin par défaut de l'indexer
+  ansible.builtin.uri:
+    url: "https://localhost:{{ elasticsearch_port }}/_plugins/_security/api/internalusers/admin"
+    method: PATCH
+    body_format: json
+    body:
+      - op: replace
+        path: /password
+        value: "{{ wazuh_indexer_admin_password }}"
+    client_cert: "{{ wazuh_certs_path }}/admin.pem"
+    client_key: "{{ wazuh_certs_path }}/admin-key.pem"
+    validate_certs: no
+    status_code: 200
+  when: not wazuh_security_initialized.stat.exists
+  no_log: true
+
+- name: Marquer la sécurité de l'indexer comme initialisée
+  ansible.builtin.file:
+    path: /etc/wazuh-indexer/.security_initialized
+    state: touch
+    mode: '0600'
+  when: not wazuh_security_initialized.stat.exists
+
+- name: Ouvrir le port Wazuh Indexer dans ufw
+  community.general.ufw:
+    rule: allow
+    port: "{{ elasticsearch_port }}"
+    proto: tcp

@@ -5,6 +5,7 @@ grafana_version:            "13.0.2"
 loki_version:               "3.7.2"
 tempo_version:              "3.0.2"
 wazuh_version:              "4.14.5"
+wazuh_filebeat_version:     "7.10.2"
 # -- Agent
 node_exporter_version:      "1.11.0"
 pg_exporter_version:        "0.19.0"
@@ -29,8 +30,15 @@ pg_exporter_port:     9187
 cadvisor_port:        8080
 elasticsearch_port:   9200
 
+# --- Wazuh / OpenSearch (single-node sur nocserv) ---
+wazuh_node_name:            "nocserv"
+wazuh_indexer_ip:           "{{ monitoring_ip }}"
+wazuh_indexer_data_path:    "/var/lib/wazuh-indexer"
+wazuh_certs_path:           "/etc/wazuh-indexer-certs-tool"
+wazuh_indexer_admin_user:   "admin"
+
 # --- Secrets (référencés depuis vault/secrets.yml) ---
-grafana_admin_password:   "{{ vault_grafana_admin_password }}"
-pg_exporter_password:     "{{ vault_pg_exporter_password }}"
-#smtp_password:           "{{ vault_smtp_password }}"
-elasticsearch_password:   "{{ vault_elasticsearch_password }}"
+grafana_admin_password:       "{{ vault_grafana_admin_password }}"
+pg_exporter_password:         "{{ vault_pg_exporter_password }}"
+#smtp_password:               "{{ vault_smtp_password }}"
+wazuh_indexer_admin_password: "{{ vault_opensearch_password }}"
